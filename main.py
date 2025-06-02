@@ -5,6 +5,7 @@ import os
 import platform
 import psutil
 import winreg
+from utils.Tarea import ingresar_diez_tareas
 
 # Función para obtener el nombre exacto (porque os lo agarra mal) del sistema operativo
 def get_sistema_operativo_real():
@@ -59,89 +60,80 @@ def get_sistema_df():
 
     return pd.DataFrame(info)
 
-df_sistema = get_sistema_df()
+def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo, mpm):
+    intentos_data = []
 
-# Parámetros de entrada
-size = 10  # Tamaño del arreglo
-n = 100    # Rango de elementos a generar aleatoriamente
-reps = 5   # Número de repeticiones para medir el tiempo
-num = 1    # Número de veces que se ejecuta cada sort
+    for i, tiempo in enumerate(tiempos):
+        tareas_en_intento = tareas[i]
 
-x = input("\n¿Deseas realizar pruebas con arreglos aleatorios o específicos o salir del programa? (a/e/s): ").strip().lower()
-while(True):
-    if x == "a":
-        size = int(input("Ingrese el tamaño del arreglo: "))
-        n = int(input("Ingrese el rango de elementos a generar aleatoriamente: "))
-        reps = int(input("Ingrese el número de repeticiones para medir el tiempo: "))
-        num = int(input("Ingrese el número de veces que se ejecuta cada sort: "))
-        algorithm = input("Ingrese el algoritmo a utilizar (selectionsort, insertionsort, bubblesort): ").strip().lower()
-        
-        while algorithm not in ["selectionsort", "insertionsort", "bubblesort"]:
-            print("\nAlgoritmo no válido. Por favor, elija uno de los siguientes: selectionsort, insertionsort, bubblesort.\n")
-            algorithm = input("Ingrese el algoritmo a utilizar: ").strip().lower()
-        
-        tiempos,mpm = sortRandomResults(algorithm, size, n, reps, num)
-        
-        df_tiempos = pd.DataFrame({
-            "Repetición": list(range(1, len(tiempos)+1)),
-            "Tiempo": tiempos
-        })
+        # Verificamos si es una lista de listas y la aplanamos
+        if tareas_en_intento and isinstance(tareas_en_intento[0], list):
+            tareas_en_intento = tareas_en_intento[0]
 
-        df_mpm = pd.DataFrame({
-            "Métrica": ["Mínimo", "Promedio", "Máximo"],
-            "Valor": mpm
-        })
-        
-        filename = "data/" + f"random_{algorithm}_{datetime.now().strftime('%Y%m%d%H%M%S')}" + ".xlsx"
-        
-        with pd.ExcelWriter(filename) as writer:
-            df_tiempos.to_excel(writer, sheet_name="Tiempos", index=False)
-            df_mpm.to_excel(writer, sheet_name="Resumen", index=False)
-            df_sistema.to_excel(writer, sheet_name="Sistema", index=False)
-        
-        if os.path.exists(filename):
-            print(f"\nResultados guardados en {filename}\n")
+        for tarea in tareas_en_intento:
+            intentos_data.append({
+                "Intento": i + 1,
+                "Nombre de tarea": tarea.nombre,
+                "Fecha": tarea.fecha_vencimiento.strftime("%Y-%m-%d"),
+                "Prioridad": tarea.prioridad,
+                "Tiempo (s)": round(float(str(tiempo).replace("s", "").strip()), 6),
+                "Criterio": criterio,
+                "Algoritmo": algoritmo
+            })
+
+    df_intentos = pd.DataFrame(intentos_data)
+    df_mpm = pd.DataFrame({
+        "Métrica": ["Mínimo", "Promedio", "Máximo"],
+        "Tiempo (s)": [
+            round(float(str(mpm[0]).replace("s", "").strip()), 6),
+            round(float(str(mpm[1]).replace("s", "").strip()), 6),
+            round(float(str(mpm[2]).replace("s", "").strip()), 6),
+        ]
+    })
+
+    with pd.ExcelWriter(nombre_archivo) as writer:
+        df_intentos.to_excel(writer, sheet_name="Resultados", index=False)
+        df_mpm.to_excel(writer, sheet_name="Resumen MPM", index=False)
+
+def main():
+
+    df_sistema = get_sistema_df()
+
+    x = input("\n¿Deseas realizar pruebas con tareas aleatorias, específicas o salir del programa? (a/e/s): ").strip().lower()
+    while(True):
+        if x == "a":
+            size = int(input("Ingresa el tamaño del arreglo de tareas aleatorias: "))
+            criterio = input("Ingresa el criterio de ordenamiento (nombre/fecha/prioridad): ").strip().lower()
+            algorithm = input("Ingresa el algoritmo de ordenamiento (bubblesort/selectionsort/insertionsort): ").strip().lower()
+            reps = int(input("Ingresa el número de repeticiones para la prueba: "))
+            num = int(input("Ingresa el número de veces que se ejecutará cada repetición: "))
+            tareas,tiempos,mpm = sortRandomResults(algorithm, size, criterio, reps, num)
+            filename = "data/" + f"random_{algorithm}_{datetime.now().strftime('%Y%m%d%H%M%S')}" + ".xlsx"
+            guardar_resultados_csv(filename, tareas, tiempos, criterio, algorithm, mpm)
+            if os.path.exists(filename):
+                print(f"\nResultados guardados en {filename}\n")
+            else:
+                print("\nError al guardar los resultados. Por favor, intente nuevamente.\n")
+        elif x == "e":
+            print("Ingresa 10 tareas:")
+            tareas = ingresar_diez_tareas()
+            criterio = input("Ingresa el criterio de ordenamiento (nombre/fecha/prioridad): ").strip().lower()
+            algorithm = input("Ingresa el algoritmo de ordenamiento (bubblesort/selectionsort/insertionsort): ").strip().lower()
+            reps = int(input("Ingresa el número de repeticiones para la prueba: "))
+            num = int(input("Ingresa el número de veces que se ejecutará cada repetición: "))
+            tiempos, mpm = sortResults(algorithm, tareas, criterio, reps, num)
+            filename = "data/" + f"random_{algorithm}_{datetime.now().strftime('%Y%m%d%H%M%S')}" + ".xlsx"
+            guardar_resultados_csv(filename, tareas, tiempos, criterio, algorithm, mpm)
+            if os.path.exists(filename):
+                print(f"\nResultados guardados en {filename}\n")
+            else:
+                print("\nError al guardar los resultados. Por favor, intente nuevamente.\n")
+        elif x == "s":
+            print("Saliendo del programa.")
+            return
         else:
-            print("\nError al guardar los resultados. Por favor, intente nuevamente.\n")
-            
-    elif x == "e":
-        data_input = input("Ingrese los elementos del arreglo separados por comas: ")
-        data = list(map(int, data_input.split(',')))
-        reps = int(input("Ingrese el número de repeticiones para medir el tiempo: "))
-        num = int(input("Ingrese el número de veces que se ejecuta cada sort: "))
-        algorithm = input("Ingrese el algoritmo a utilizar (selectionsort, insertionsort, bubblesort): ").strip().lower()
+            print("Opción no válida. Inténtalo de nuevo.")
+        x = input("\n¿Deseas realizar pruebas con tareas aleatorias, específicas o salir del programa? (a/e/s): ").strip().lower()    
         
-        while algorithm not in ["selectionsort", "insertionsort", "bubblesort"]:
-            print("\nAlgoritmo no válido. Por favor, elija uno de los siguientes: selectionsort, insertionsort, bubblesort.\n")
-            algorithm = input("Ingrese el algoritmo a utilizar: ").strip().lower()
-        
-        tiempos,mpm = sortResults(algorithm, data, reps, num)
-        
-        df_tiempos = pd.DataFrame({
-            "Repetición": list(range(1, len(tiempos)+1)),
-            "Tiempo": tiempos
-        })
-
-        df_mpm = pd.DataFrame({
-            "Métrica": ["Mínimo", "Promedio", "Máximo"],
-            "Valor": mpm
-        })
-        
-        filename = "data/" + f"{algorithm}_{datetime.now().strftime('%Y%m%d%H%M%S')}" + ".xlsx"
-        
-        with pd.ExcelWriter(filename) as writer:
-            df_tiempos.to_excel(writer, sheet_name="Tiempos", index=False)
-            df_mpm.to_excel(writer, sheet_name="Resumen", index=False)
-            df_sistema.to_excel(writer, sheet_name="Sistema", index=False)
-            
-        if os.path.exists(filename):
-            print(f"\nResultados guardados en {filename}\n")
-        else:
-            print("\nError al guardar los resultados. Por favor, intente nuevamente.\n")
-            
-    elif x == "s":
-        print("\nSaliendo del programa.\n")
-        exit()
-    else:
-        print("\nOpción no válida. Intente nuevamente.\n")
-    x = input("¿Deseas realizar pruebas con arreglos aleatorios o específicos o salir del programa? (a/e/s): ").strip().lower()
+if __name__ == "__main__":
+    main()
