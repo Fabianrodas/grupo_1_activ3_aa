@@ -62,42 +62,45 @@ def get_sistema_df():
 
 def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo, mpm):
     resumen_data = []
+    tareas_desordenadas_data = []
     tareas_ordenadas_data = []
 
     for i, tiempo in enumerate(tiempos):
         tareas_en_intento = tareas[i]
 
-        # Aplanar si es necesario
         if tareas_en_intento and isinstance(tareas_en_intento[0], list):
             tareas_en_intento = tareas_en_intento[0]
 
-        # --- Arreglo como string para hoja de resumen
-        resumen_tareas = "; ".join([
-            f"{tarea.nombre} (F: {tarea.fecha_vencimiento.strftime('%Y-%m-%d')}, P: {tarea.prioridad})"
-            for tarea in tareas_en_intento
-        ])
-
         resumen_data.append({
             "Intento": i + 1,
-            "Arreglo Ordenado": resumen_tareas,
             "Tiempo (s)": round(float(str(tiempo).replace("s", "").strip()), 6),
             "Criterio": criterio,
             "Algoritmo": algoritmo
         })
 
-        # --- Hoja adicional con tareas ordenadas individualmente
         for tarea in tareas_en_intento:
             tareas_ordenadas_data.append({
                 "Intento": i + 1,
                 "Nombre de tarea": tarea.nombre,
                 "Fecha": tarea.fecha_vencimiento.strftime("%Y-%m-%d"),
-                "Prioridad": tarea.prioridad,
-                "Criterio": criterio,
-                "Algoritmo": algoritmo,
-                "Tiempo (s)": round(float(str(tiempo).replace("s", "").strip()), 6)
+                "Prioridad": tarea.prioridad
+            })
+
+        if hasattr(tarea, 'original_order'):
+            desordenadas = tarea.original_order
+        else:
+            desordenadas = sorted(tareas_en_intento, key=lambda x: x.nombre) 
+
+        for tarea in desordenadas:
+            tareas_desordenadas_data.append({
+                "Intento": i + 1,
+                "Nombre de tarea": tarea.nombre,
+                "Fecha": tarea.fecha_vencimiento.strftime("%Y-%m-%d"),
+                "Prioridad": tarea.prioridad
             })
 
     df_resumen = pd.DataFrame(resumen_data)
+    df_tareas_desordenadas = pd.DataFrame(tareas_desordenadas_data)
     df_tareas_ordenadas = pd.DataFrame(tareas_ordenadas_data)
     df_mpm = pd.DataFrame({
         "Métrica": ["Mínimo", "Promedio", "Máximo"],
@@ -110,8 +113,10 @@ def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo,
 
     with pd.ExcelWriter(nombre_archivo) as writer:
         df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
+        df_tareas_desordenadas.to_excel(writer, sheet_name="Tareas Desordenadas", index=False)
         df_tareas_ordenadas.to_excel(writer, sheet_name="Tareas Ordenadas", index=False)
         df_mpm.to_excel(writer, sheet_name="Resumen MPM", index=False)
+
 
 def main():
 
