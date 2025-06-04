@@ -110,12 +110,14 @@ def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo,
             round(float(str(mpm[2]).replace("s", "").strip()), 6),
         ]
     })
+    df_sistema = get_sistema_df()
 
     with pd.ExcelWriter(nombre_archivo) as writer:
         df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
         df_tareas_desordenadas.to_excel(writer, sheet_name="Tareas Desordenadas", index=False)
         df_tareas_ordenadas.to_excel(writer, sheet_name="Tareas Ordenadas", index=False)
         df_mpm.to_excel(writer, sheet_name="Resumen MPM", index=False)
+        df_sistema.to_excel(writer, sheet_name="Sistema", index=False)
 
 
 def main():
