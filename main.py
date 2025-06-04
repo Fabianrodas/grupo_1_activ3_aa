@@ -61,27 +61,44 @@ def get_sistema_df():
     return pd.DataFrame(info)
 
 def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo, mpm):
-    intentos_data = []
+    resumen_data = []
+    tareas_ordenadas_data = []
 
     for i, tiempo in enumerate(tiempos):
         tareas_en_intento = tareas[i]
 
-        # Verificamos si es una lista de listas y la aplanamos
+        # Aplanar si es necesario
         if tareas_en_intento and isinstance(tareas_en_intento[0], list):
             tareas_en_intento = tareas_en_intento[0]
 
+        # --- Arreglo como string para hoja de resumen
+        resumen_tareas = "; ".join([
+            f"{tarea.nombre} (F: {tarea.fecha_vencimiento.strftime('%Y-%m-%d')}, P: {tarea.prioridad})"
+            for tarea in tareas_en_intento
+        ])
+
+        resumen_data.append({
+            "Intento": i + 1,
+            "Arreglo Ordenado": resumen_tareas,
+            "Tiempo (s)": round(float(str(tiempo).replace("s", "").strip()), 6),
+            "Criterio": criterio,
+            "Algoritmo": algoritmo
+        })
+
+        # --- Hoja adicional con tareas ordenadas individualmente
         for tarea in tareas_en_intento:
-            intentos_data.append({
+            tareas_ordenadas_data.append({
                 "Intento": i + 1,
                 "Nombre de tarea": tarea.nombre,
                 "Fecha": tarea.fecha_vencimiento.strftime("%Y-%m-%d"),
                 "Prioridad": tarea.prioridad,
-                "Tiempo (s)": round(float(str(tiempo).replace("s", "").strip()), 6),
                 "Criterio": criterio,
-                "Algoritmo": algoritmo
+                "Algoritmo": algoritmo,
+                "Tiempo (s)": round(float(str(tiempo).replace("s", "").strip()), 6)
             })
 
-    df_intentos = pd.DataFrame(intentos_data)
+    df_resumen = pd.DataFrame(resumen_data)
+    df_tareas_ordenadas = pd.DataFrame(tareas_ordenadas_data)
     df_mpm = pd.DataFrame({
         "Métrica": ["Mínimo", "Promedio", "Máximo"],
         "Tiempo (s)": [
@@ -92,7 +109,8 @@ def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo,
     })
 
     with pd.ExcelWriter(nombre_archivo) as writer:
-        df_intentos.to_excel(writer, sheet_name="Resultados", index=False)
+        df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
+        df_tareas_ordenadas.to_excel(writer, sheet_name="Tareas Ordenadas", index=False)
         df_mpm.to_excel(writer, sheet_name="Resumen MPM", index=False)
 
 def main():
