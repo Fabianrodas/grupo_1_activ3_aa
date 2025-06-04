@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import copy
 
+
 class AplicacionOrdenamiento:
     def __init__(self, root):
         self.root = root
