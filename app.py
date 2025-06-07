@@ -104,6 +104,7 @@ class AplicacionOrdenamiento:
             tareas_ordenadas, tiempos, mpm, tareas_desordenadas = sortRandomResults(
                 algoritmo, size, criterio, reps, 1
             )
+            typename = "random"
         else:
             tareas = []
             try:
@@ -138,9 +139,10 @@ class AplicacionOrdenamiento:
                 f"{sum(tiempos) / len(tiempos):.5f} s",
                 f"{max(tiempos):.5f} s"
             )
+            typename = "specific"
 
         # Guardar automáticamente en la carpeta 'data' con formato personalizado
-        nombre_archivo = os.path.join("data", f"random_{algoritmo}_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx")
+        nombre_archivo = os.path.join("data", f"{typename}_{algoritmo}_{criterio}_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx")
         guardar_resultados_csv(nombre_archivo, tareas_ordenadas, tiempos, criterio, algoritmo, mpm, tareas_desordenadas)
         messagebox.showinfo("Guardado", f"Resultados guardados en {nombre_archivo}")
 
