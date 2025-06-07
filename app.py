@@ -1,10 +1,12 @@
 import tkinter as tk
+from tkinter import Tk
 from tkinter import ttk, messagebox
 from utils.time_benchmark import sortResults, sortRandomResults, guardar_resultados_csv
 from utils.Tarea import Tarea
 from datetime import datetime
 import os
 import copy
+
 
 
 class AplicacionOrdenamiento:
@@ -22,8 +24,7 @@ class AplicacionOrdenamiento:
         self._crear_widgets()
 
     def _crear_widgets(self):
-        fuente = ("Segoe UI", 12)
-
+        fuente = "Segoe UI", 12
         self.frame = tk.Frame(self.root, padx=20, pady=20)
         self.frame.pack(fill=tk.BOTH, expand=True)
 
@@ -35,11 +36,11 @@ class AplicacionOrdenamiento:
         self.entry_tamano = tk.Entry(self.frame, font=fuente)
 
         tk.Label(self.frame, text="Criterio de ordenamiento:", font=fuente).pack(anchor="w")
-        self.combo_criterio = ttk.Combobox(self.frame, textvariable=self.criterio, values=["nombre", "fecha", "prioridad"], font=fuente)
+        self.combo_criterio = ttk.Combobox(self.frame, textvariable=self.criterio, values=["nombre", "fecha", "prioridad"], font=fuente, state="readonly")
         self.combo_criterio.pack(anchor="w", fill=tk.X)
 
         tk.Label(self.frame, text="Algoritmo de ordenamiento:", font=fuente).pack(anchor="w")
-        self.combo_algoritmo = ttk.Combobox(self.frame, textvariable=self.algoritmo, values=["bubblesort", "selectionsort", "insertionsort"], font=fuente)
+        self.combo_algoritmo = ttk.Combobox(self.frame, textvariable=self.algoritmo, values=["bubblesort", "selectionsort", "insertionsort"], font=fuente, state="readonly")    
         self.combo_algoritmo.pack(anchor="w", fill=tk.X)
 
         tk.Label(self.frame, text="Número de repeticiones:", font=fuente).pack(anchor="w")
@@ -150,27 +151,75 @@ class AplicacionOrdenamiento:
         ventana_resultados.title("Resultados")
         ventana_resultados.geometry("1000x600")
 
-        texto = tk.Text(ventana_resultados, font=("Consolas", 11))
-        texto.pack(fill=tk.BOTH, expand=True)
+        # Frame con scrollbar
+        canvas = tk.Canvas(ventana_resultados)
+        scrollbar = tk.Scrollbar(ventana_resultados, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
 
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Crear intentos desplegables
         for i, (des, ord, tiempo) in enumerate(zip(tareas_desordenadas, tareas_ordenadas, tiempos), start=1):
-            texto.insert(tk.END, f"\nIntento {i}\n")
-            texto.insert(tk.END, "Tareas desordenadas:\n")
+            intento_frame = tk.Frame(scrollable_frame, bd=1, relief="solid", padx=10, pady=5)
+            intento_frame.pack(fill="x", pady=5, padx=5)
+
+            encabezado = tk.Frame(intento_frame)
+            encabezado.pack(fill="x")
+
+            lbl = tk.Label(encabezado, text=f"🔹 Intento {i} - Tiempo: {tiempo}", font=("Segoe UI", 11, "bold"))
+            lbl.pack(side="left")
+
+            btn_toggle = tk.Button(encabezado, text="Ver detalles", font=("Segoe UI", 10))
+            btn_toggle.pack(side="right")
+
+            detalles_frame = tk.Frame(intento_frame)
+            detalles_frame.pack(fill="x")
+            detalles_frame.pack_forget()  # Ocultar inicialmente
+
+            def toggle_detalles(frame=detalles_frame, btn=btn_toggle):
+                if frame.winfo_ismapped():
+                    frame.pack_forget()
+                    btn.config(text="Ver detalles")
+                else:
+                    frame.pack(fill="x")
+                    btn.config(text="Ocultar detalles")
+
+            btn_toggle.config(command=toggle_detalles)
+
+            # Mostrar tareas dentro del frame oculto
+            tk.Label(detalles_frame, text="Tareas desordenadas:", font=("Segoe UI", 10, "underline")).pack(anchor="w")
             for tarea in des:
-                texto.insert(tk.END, f"  - {tarea.nombre}, {tarea.fecha_vencimiento.date()}, P{tarea.prioridad}\n")
+                tk.Label(detalles_frame, text=f"  - {tarea.nombre}, {tarea.fecha_vencimiento.date()}, P{tarea.prioridad}", font=("Consolas", 10)).pack(anchor="w")
 
-            texto.insert(tk.END, "Tareas ordenadas:\n")
+            tk.Label(detalles_frame, text="Tareas ordenadas:", font=("Segoe UI", 10, "underline")).pack(anchor="w", pady=(5, 0))
             for tarea in ord:
-                texto.insert(tk.END, f"  - {tarea.nombre}, {tarea.fecha_vencimiento.date()}, P{tarea.prioridad}\n")
+                tk.Label(detalles_frame, text=f"  - {tarea.nombre}, {tarea.fecha_vencimiento.date()}, P{tarea.prioridad}", font=("Consolas", 10)).pack(anchor="w")
 
-            texto.insert(tk.END, f"Tiempo: {tiempo}\n")
+        # Mostrar resumen MPM al final
+        resumen_frame = tk.Frame(scrollable_frame, bd=2, relief="ridge", padx=10, pady=10)
+        resumen_frame.pack(fill="x", pady=10, padx=5)
 
-        texto.insert(tk.END, "\nResumen MPM:\n")
-        texto.insert(tk.END, f"Mínimo: {mpm[0]}\n")
-        texto.insert(tk.END, f"Promedio: {mpm[1]}\n")
-        texto.insert(tk.END, f"Máximo: {mpm[2]}\n")
+        tk.Label(resumen_frame, text="📊 Resumen MPM:", font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        tk.Label(resumen_frame, text=f"Mínimo: {mpm[0]}", font=("Segoe UI", 11)).pack(anchor="w")
+        tk.Label(resumen_frame, text=f"Promedio: {mpm[1]}", font=("Segoe UI", 11)).pack(anchor="w")
+        tk.Label(resumen_frame, text=f"Máximo: {mpm[2]}", font=("Segoe UI", 11)).pack(anchor="w")
+
+
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.iconbitmap(bitmap='icon.ico')
+    root.resizable(0,0)
     app = AplicacionOrdenamiento(root)
     root.mainloop()
