@@ -162,7 +162,9 @@ def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo,
             "Intento": i + 1,
             "Tiempo (s)": round(float(str(tiempo).replace("s", "").strip()), 6),
             "Criterio": criterio,
-            "Algoritmo": algoritmo
+            "Algoritmo": algoritmo,
+            "Tipo" : "random" if nombre_archivo.contains("random") else "specific",
+            "Input Size": len(tareas_en_intento)
         })
 
         tiempo_valor = round(float(str(tiempo).replace("s", "").strip()), 6)
@@ -202,12 +204,13 @@ def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo,
     df_tareas_desordenadas = pd.DataFrame(tareas_desordenadas_data)
     df_tareas_ordenadas = pd.DataFrame(tareas_ordenadas_data)
     df_mpm = pd.DataFrame({
-        "Métrica": ["Mínimo", "Promedio", "Máximo"],
-        "Tiempo (s)": [
-            round(float(str(mpm[0]).replace("s", "").strip()), 6),
-            round(float(str(mpm[1]).replace("s", "").strip()), 6),
-            round(float(str(mpm[2]).replace("s", "").strip()), 6),
-        ]
+        "Mínimo (s)" : round(float(str(mpm[0]).replace("s", "").strip()), 6),
+        "Promedio (s)" : round(float(str(mpm[1]).replace("s", "").strip()), 6),
+        "Máximo (s)" : round(float(str(mpm[2]).replace("s", "").strip()), 6),
+        "Criterio": criterio,
+        "Algoritmo": algoritmo,
+        "Tipo" : "random" if nombre_archivo.contains("random") else "specific",
+        "Input Size": len(tareas_en_intento)
     })
     df_sistema = get_sistema_df()
 
