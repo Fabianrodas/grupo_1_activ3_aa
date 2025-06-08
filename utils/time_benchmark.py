@@ -152,6 +152,7 @@ def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo,
     resumen_data = []
     tareas_desordenadas_data = []
     tareas_ordenadas_data = []
+    resumen_mpm = []
 
     for i, tiempo in enumerate(tiempos):
         tareas_en_intento = tareas[i]
@@ -163,7 +164,7 @@ def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo,
             "Tiempo (s)": round(float(str(tiempo).replace("s", "").strip()), 6),
             "Criterio": criterio,
             "Algoritmo": algoritmo,
-            "Tipo" : "random" if nombre_archivo.contains("random") else "specific",
+            "Tipo" : "random" if ("random" in nombre_archivo) else "specific",
             "Input Size": len(tareas_en_intento)
         })
 
@@ -203,16 +204,17 @@ def guardar_resultados_csv(nombre_archivo, tareas, tiempos, criterio, algoritmo,
     df_resumen = pd.DataFrame(resumen_data)
     df_tareas_desordenadas = pd.DataFrame(tareas_desordenadas_data)
     df_tareas_ordenadas = pd.DataFrame(tareas_ordenadas_data)
-    df_mpm = pd.DataFrame({
+    resumen_mpm.append({
         "Mínimo (s)" : round(float(str(mpm[0]).replace("s", "").strip()), 6),
         "Promedio (s)" : round(float(str(mpm[1]).replace("s", "").strip()), 6),
         "Máximo (s)" : round(float(str(mpm[2]).replace("s", "").strip()), 6),
         "Criterio": criterio,
         "Algoritmo": algoritmo,
-        "Tipo" : "random" if nombre_archivo.contains("random") else "specific",
+        "Tipo" : "random" if ("random" in nombre_archivo) else "specific",
         "Input Size": len(tareas_en_intento)
     })
     df_sistema = get_sistema_df()
+    df_mpm = pd.DataFrame(resumen_mpm)
 
     with pd.ExcelWriter(nombre_archivo) as writer:
         df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
